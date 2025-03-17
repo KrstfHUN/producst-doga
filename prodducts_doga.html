@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #d6d6d6;
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.2);
+        }
+        .product {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            background-color: #fafafa;
+        }
+        .product img {
+            max-width: 100px;
+            margin-right: 10px;
+        }
+        .cheapest {
+            color: green;
+        }
+        .most-expensive {
+            color: red;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        img {
+            height: 100px;
+        }
+        .blue-line {
+            border: 2px solid rgb(0, 204, 255);
+            background-color: rgb(0, 204, 255);
+        }
+        .search-input {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Products Dolgozat: Tóth Kristóf Antal</h1>
+        <div id="product-names"></div>
+        <div id="category-lists"></div>
+        <div id="non-five-rating-products"></div>
+        <div id="product-table"></div>
+        <div id="product-images"></div>
+        <div id="average-price"></div>
+        <div id="highest-rated-product"></div>
+        <div id="high-rating-count"></div>
+        <div>
+            <label for="search-input">Search: </label>
+            <input type="text" id="search-input" class="search-input">
+        </div>
+        <div id="search-results"></div>
+    </div>
+    <script>
+        const URL = 'https://dummyjson.com/products';
+
+        async function fetchData() {
+            try {
+                const response = await fetch(URL);
+                const data = await response.json();
+                return data.products;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return [];
+            }
+        }
+
+        function getStarRating(rating) {
+            return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        }
+
+        async function init() {
+            const products = await fetchData();
+            if (products.length === 0) {
+                console.error('No products found');
+                return;
+            }
+
+
+            const productNamesDiv = document.getElementById('product-names');
+            const productNames = products.map(product => product.title).join(', ');
+            productNamesDiv.innerHTML = `<p>${productNames}</p>`;
+
+
+            const categories = [...new Set(products.map(product => product.category))];
+            const chosenCategories = categories.slice(0, 2);
+            const categoryListsDiv = document.getElementById('category-lists');
+            chosenCategories.forEach((category, index) => {
+                const categoryProducts = products.filter(product => product.category === category);
+                const listType = index === 0 ? 'ol' : 'ul';
+                const list = document.createElement(listType);
+                categoryProducts.forEach((product, i) => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `${product.title} - $${product.price}`;
+                    if (i === 0) listItem.style.fontWeight = 'bold';
+                    list.appendChild(listItem);
+                });
+                categoryListsDiv.innerHTML += `<h2>${category}</h2>`;
+                categoryListsDiv.appendChild(list);
+            });
+
+
+            const nonFiveRatingProductsDiv = document.getElementById('non-five-rating-products');
+            const nonFiveRatingProducts = products.filter(product => product.rating !== 5);
+            nonFiveRatingProductsDiv.innerHTML = '<h2>Products with non-five rating</h2>';
+            nonFiveRatingProducts.forEach(product => {
+                const p = document.createElement('p');
+                p.textContent = `${product.title} - Rating: ${product.rating}`;
+                nonFiveRatingProductsDiv.appendChild(p);
+            });
+
+
+            const productTableDiv = document.getElementById('product-table');
+            const productTable = document.createElement('table');
+            productTable.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Brand</th>
+                        <th>Stock Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${products.map(product => `
+                        <tr class="${product.stock > 11 ? 'blue-line' : ''}">
+                            <td>${product.title}</td>
+                            <td>${product.brand}</td>
+                            <td>${product.stock}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+            productTableDiv.appendChild(productTable);
+
+
+            const productImagesDiv = document.getElementById('product-images');
+            const productImagesTable = document.createElement('table');
+            let imageRows = '';
+            for (let i = 0; i < products.length; i += 5) {
+                const row = products.slice(i, i + 5).map(product => `
+                    <td><img src="${product.thumbnail}" width="80"></td>
+                `).join('');
+                imageRows += `<tr>${row}</tr>`;
+            }
+            productImagesTable.innerHTML = imageRows;
+            productImagesDiv.appendChild(productImagesTable);
+
+
+            const averagePriceDiv = document.getElementById('average-price');
+            const productsUnder111 = products.filter(product => product.price < 111);
+            const averagePrice = productsUnder111.reduce((sum, product) => sum + product.price, 0) / productsUnder111.length;
+            averagePriceDiv.innerHTML = `<h2>Average price of products under $111: $${averagePrice.toFixed(2)}</h2>`;
+
+
+            const highestRatedProductDiv = document.getElementById('highest-rated-product');
+            const highestRatedProduct = products.reduce((max, product) => product.rating > max.rating ? product : max);
+            highestRatedProductDiv.innerHTML = `<h2>Highest rated product: ${highestRatedProduct.title}</h2>`;
+
+
+            const highRatingCountDiv = document.getElementById('high-rating-count');
+            const highRatingCount = products.filter(product => product.rating > 4.56).length;
+            highRatingCountDiv.innerHTML = `<h2>Products with rating above 4.56: ${highRatingCount}</h2>`;
+
+
+            const searchInput = document.getElementById('search-input');
+            const searchResultsDiv = document.getElementById('search-results');
+            searchInput.addEventListener('input', () => {
+                const searchText = searchInput.value.toLowerCase();
+                const searchResults = products.filter(product => 
+                    product.title.toLowerCase().includes(searchText) || 
+                    product.description.toLowerCase().includes(searchText)
+                );
+                searchResultsDiv.innerHTML = '<h2>Search results</h2>';
+                searchResults.forEach(product => {
+                    const p = document.createElement('p');
+                    p.textContent = product.title;
+                    searchResultsDiv.appendChild(p);
+                });
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+</body>
+</html>
